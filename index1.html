@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Buoy Tracker</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" />
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rubik', sans-serif; }
+    html, body { height: 100%; overflow: hidden; color: #fff; background: #000; }
+
+    .scene {
+      width: 100vw;
+      height: 100vh;
+      perspective: 2000px;
+    }
+    .card {
+      width: 100%;
+      height: 100%;
+      transition: transform 1s;
+      transform-style: preserve-3d;
+      position: relative;
+    }
+    .flipped .card {
+      transform: rotateY(180deg);
+    }
+    .face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background-size: cover;
+      background-position: center;
+    }
+    #login {
+      background-image: url('login-bg.jpg');
+    }
+    #dashboard {
+      background-image: url('tracker-bg.jpg');
+      transform: rotateY(180deg);
+    }
+    @media (min-width: 768px) {
+      #login {
+        background-image: url('login-desktop.jpg');
+      }
+      #dashboard {
+        background-image: url('tracker-desktop.jpg');
+      }
+    }
+    .login-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 10px rgba(255,255,255,0.2);
+      text-align: center;
+      max-width: 300px;
+      width: 100%;
+      position: relative;
+    }
+    .login-box h2 { margin-bottom: 15px; }
+    .login-box input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 20px;
+      top: 78px;
+      cursor: pointer;
+      color: white;
+    }
+    .login-box button {
+      padding: 10px 20px;
+      background: #00bcd4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .signal-status {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+    }
+    /* ---- New Speed/Satellite Status Box ---- */
+    .gps-status-box {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      background: rgba(0,0,0,0.7);
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 1.07rem;
+      color: #aefbff;
+      min-width: 120px;
+      text-align: right;
+      z-index: 2;
+      box-shadow: 0 2px 10px rgba(0,255,255,0.08);
+    }
+    #map {
+      width: 90%;
+      max-width: 800px;
+      height: 400px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 90%;
+      margin: auto;
+      border-collapse: collapse;
+      color: white;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid white;
+      text-align: center;
+    }
+    th {
+      background: rgba(0, 188, 212, 0.8);
+    }
+    #geo-status {
+      font-size: 1.2rem;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    /* Mobile adjustments */
+    @media (max-width: 600px) {
+      #map {
+        height: 240px;
+      }
+      .gps-status-box {
+        padding: 8px 10px;
+        font-size: 0.97rem;
+        min-width: 90px;
+      }
+      .signal-status, .gps-status-box {
+        right: 10px;
+      }
+    }
+  </style>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCocLsZi5ySLTNn5vwVmIunUvjChCK6aEs&libraries=geometry"></script>
+</head>
+<body>
+  <audio id="bubbleSound" src="https://assets.mixkit.co/sfx/preview/mixkit-bubble-pop-1942.mp3"></audio>
+  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2023/03/30/audio_3df6e6c6fc.mp3?filename=deep-ocean-ambient-142508.mp3" autoplay loop></audio>
+
+  <div class="scene" id="scene">
+    <div class="card" id="card">
+      <div class="face" id="login">
+        <div class="login-box">
+          <h2>Emergency Buoy Tracker</h2>
+          <input type="password" id="password" placeholder="Enter password">
+          <span class="toggle-password" onclick="togglePassword()">👁️</span>
+          <br>
+          <button onclick="login()">Enter</button>
+        </div>
+      </div>
+      <div class="face" id="dashboard">
+        <div class="signal-status">
+          <lottie-player src="https://assets10.lottiefiles.com/packages/lf20_kkflmtur.json" background="transparent" speed="1" style="width: 40px; height: 40px;" loop autoplay></lottie-player>
+          <span>Connected & Transmitting</span>
+        </div>
+        <div class="gps-status-box" id="gpsStatusBox">
+          <b>Speed:</b> 0.00 km/h <br>
+          <b>Satellites:</b> 0
+        </div>
+        <div id="map"></div>
+        <p id="geo-status"></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Latitude</th>
+              <th>Longitude</th>
+              <th>Speed (km/h)</th>
+              <th>Satellites</th>
+            </tr>
+          </thead>
+          <tbody id="history"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const channelID = '2940245';
+    const apiKey = 'TVUVAJMIPZIHVLB3';
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function login() {
+      const pwd = document.getElementById("password").value;
+      if (pwd === "admin") {
+        document.getElementById("bubbleSound").play();
+        document.getElementById("scene").classList.add("flipped");
+        setTimeout(() => {
+          pollGPS();
+          setInterval(pollGPS, 10000);
+        }, 1000);
+      } else {
+        alert("Wrong password!");
+      }
+    }
+
+    function pollGPS() {
+      fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?results=5&api_key=${apiKey}&t=${new Date().getTime()}`)
+        .then(res => res.json())
+        .then(data => {
+          const feeds = data.feeds;
+          const latest = feeds[feeds.length - 1];
+          const lat = parseFloat(latest.field1);
+          const lng = parseFloat(latest.field2);
+          const speed = parseFloat(latest.field3);
+          const sats = parseInt(latest.field4);
+          const position = { lat, lng };
+
+          // Update Google Map
+          const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 15,
+            center: position
+          });
+
+          new google.maps.Marker({
+            position,
+            map,
+            title: "Emergency Buoy"
+          });
+
+          const circle = new google.maps.Circle({
+            map,
+            center: position,
+            radius: 200,
+            fillColor: '#FF0000',
+            fillOpacity: 0.2,
+            strokeColor: '#FF0000',
+            strokeWeight: 2
+          });
+
+          // Geofence status
+          const geoStatus = document.getElementById("geo-status");
+          const origin = new google.maps.LatLng(position);
+          const dist = google.maps.geometry.spherical.computeDistanceBetween(origin, circle.getCenter());
+          geoStatus.innerText = dist > 200 ? "⚠️ OUTSIDE GEOFENCE!" : "✅ Inside Geofence";
+          geoStatus.style.color = dist > 200 ? "red" : "lightgreen";
+
+          // Update Speed/Satellite Box
+          document.getElementById("gpsStatusBox").innerHTML =
+            `<b>Speed:</b> ${isNaN(speed) ? "0.00" : speed.toFixed(2)} km/h <br>
+             <b>Satellites:</b> ${isNaN(sats) ? "0" : sats}`;
+
+          // Update log table
+          const historyTable = document.getElementById("history");
+          historyTable.innerHTML = "";
+          feeds.reverse().forEach(feed => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${new Date(feed.created_at).toLocaleString()}</td>
+              <td>${feed.field1}</td>
+              <td>${feed.field2}</td>
+              <td>${feed.field3 ? parseFloat(feed.field3).toFixed(2) : "0.00"}</td>
+              <td>${feed.field4 ? feed.field4 : "0"}</td>
+            `;
+            historyTable.appendChild(row);
+          });
+        })
+        .catch(err => {
+          console.error("Error fetching data:", err);
+        });
+    }
+  </script>
+</body>
+</html>
