@@ -250,7 +250,7 @@
           const circle = new google.maps.Circle({
             map,
             center: position,
-            radius: 200,
+            radius: 50,
             fillColor: '#FF0000',
             fillOpacity: 0.2,
             strokeColor: '#FF0000',
@@ -261,8 +261,8 @@
           const geoStatus = document.getElementById("geo-status");
           const origin = new google.maps.LatLng(position);
           const dist = google.maps.geometry.spherical.computeDistanceBetween(origin, circle.getCenter());
-          geoStatus.innerText = dist > 200 ? "⚠️ OUTSIDE GEOFENCE!" : "✅ Inside Geofence";
-          geoStatus.style.color = dist > 200 ? "red" : "lightgreen";
+          geoStatus.innerText = dist > 50 ? "⚠️ OUTSIDE GEOFENCE!" : "✅ Inside Geofence";
+          geoStatus.style.color = dist > 50 ? "red" : "lightgreen";
 
           // Update Speed/Satellite Box
           document.getElementById("gpsStatusBox").innerHTML =
